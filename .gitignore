@@ -1,4 +1,5 @@
 build/*
+Release/*
 checkpoint.txt
 auxiliary_basis.cpp
 test.log
