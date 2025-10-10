@@ -5,8 +5,11 @@
 #include <filesystem>
 #include "basis_set_helper.h"
 
+static std::filesystem::path src_path("..");
+static std::filesystem::path basis_path = src_path / "basis_sets";
+static std::filesystem::path aux_include_path = src_path / "include";
 
-const std::vector<std::filesystem::path> get_all_basis_set_paths(std::filesystem::path basis_path) {
+const std::vector<std::filesystem::path> get_all_basis_set_paths() {
     std::vector<std::filesystem::path> files;
     for (const auto& entry : std::filesystem::directory_iterator(basis_path))
     {
@@ -19,9 +22,9 @@ const std::vector<std::filesystem::path> get_all_basis_set_paths(std::filesystem
     return files;
 };
 
-bool needs_rewrite(const std::filesystem::path& src_path, const std::vector<std::filesystem::path>& files, std::ostream& log_file) {
-    const std::filesystem::path aux_file = src_path / "auxiliary_basis.cpp";
-    const std::filesystem::path checkpoint_file_path = src_path / "checkpoint.txt";
+bool needs_rewrite(const std::vector<std::filesystem::path>& files, std::ostream& log_file) {
+    const std::filesystem::path aux_file = aux_include_path / "auxiliary_basis.cpp";
+    const std::filesystem::path checkpoint_file_path = aux_include_path / "checkpoint.txt";
 
     // Check if the checkpoint file and auxiliary file exist
     if (!std::filesystem::exists(checkpoint_file_path) || !std::filesystem::exists(aux_file))
@@ -46,7 +49,6 @@ bool needs_rewrite(const std::filesystem::path& src_path, const std::vector<std:
         return true;
     }
 
-    std::filesystem::path basis_sets_loc = src_path / "basis_sets";
     for (int i = 0; i < nr_files; ++i) {
         if (!std::getline(checkpoint_file, line)) {
             log_file << "Unexpected end of checkpoint.txt.\n";
@@ -57,7 +59,7 @@ bool needs_rewrite(const std::filesystem::path& src_path, const std::vector<std:
         const std::string file_name = line.substr(0, sep);
         int expected_size = std::stoi(line.substr(sep + 1));
 
-        const auto file_path = basis_sets_loc / file_name;
+        const auto file_path = basis_path / file_name;
 
         //Check if file_path is in files
         if (std::find(files.begin(), files.end(), file_path) == files.end()) {
@@ -75,8 +77,8 @@ bool needs_rewrite(const std::filesystem::path& src_path, const std::vector<std:
 }
 
 
-void write_checkpoint_file(std::filesystem::path src_path, std::vector<std::filesystem::path> files) {
-    std::ofstream checkpoint_file(src_path / "checkpoint.txt");
+void write_checkpoint_file(std::vector<std::filesystem::path> files) {
+    std::ofstream checkpoint_file(aux_include_path / "checkpoint.txt");
     checkpoint_file << "Nr Files:"<< files.size() << "\n";
     for (const auto& file : files)
     {
@@ -85,29 +87,30 @@ void write_checkpoint_file(std::filesystem::path src_path, std::vector<std::file
     checkpoint_file.close();
 }
 
-
-
 int main(int argc, char** argv)
 {
     //--------------------Extract Directory form input----------------
     std::ofstream log_file("test.log");
     log_file << "Starting BasisSetConverter..." << std::endl;
-    std::filesystem::path src_path(".");
-    std::filesystem::path basis_path = src_path / "basis_sets";
     basis_path.make_preferred();
     log_file << "Basis path: " << basis_path << std::endl;
 
     //--------------------Find all basis set files----------------
-    const std::vector<std::filesystem::path> files = get_all_basis_set_paths(basis_path);
+    const std::vector<std::filesystem::path> files = get_all_basis_set_paths();
     log_file << "Number of files found: " << files.size() << std::endl;
 
 
-    if (!needs_rewrite(src_path, files, log_file)) {
+    if (!needs_rewrite(files, log_file)) {
         log_file << "No need to rewrite auxiliary_basis.cpp, exiting..." << std::endl;
         return 0;
     }
 
-    write_checkpoint_file(src_path, files);
+    //Check if the include directory exists
+    if (!std::filesystem::exists(aux_include_path)) {
+        std::filesystem::create_directory(aux_include_path);
+    }
+
+    write_checkpoint_file(files);
 
     std::unordered_map<std::string, std::array<std::vector<primitive>, 118>> basis_sets;
     //Read all files and convert them to the new format
