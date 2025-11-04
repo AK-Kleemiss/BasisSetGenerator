@@ -5,9 +5,9 @@
 #include <filesystem>
 #include "basis_set_helper.h"
 
-static std::filesystem::path src_path("..");
+static std::filesystem::path src_path(".");
 static std::filesystem::path basis_path = src_path / "basis_sets";
-static std::filesystem::path aux_include_path = src_path / "include";
+static std::filesystem::path output_path = src_path / "generated";
 
 const std::vector<std::filesystem::path> get_all_basis_set_paths() {
     std::vector<std::filesystem::path> files;
@@ -23,8 +23,8 @@ const std::vector<std::filesystem::path> get_all_basis_set_paths() {
 };
 
 bool needs_rewrite(const std::vector<std::filesystem::path>& files, std::ostream& log_file) {
-    const std::filesystem::path aux_file = aux_include_path / "auxiliary_basis.cpp";
-    const std::filesystem::path checkpoint_file_path = aux_include_path / "checkpoint.txt";
+    const std::filesystem::path aux_file = output_path / "auxiliary_basis.cpp";
+    const std::filesystem::path checkpoint_file_path = output_path / "checkpoint.txt";
 
     // Check if the checkpoint file and auxiliary file exist
     if (!std::filesystem::exists(checkpoint_file_path) || !std::filesystem::exists(aux_file))
@@ -78,7 +78,7 @@ bool needs_rewrite(const std::vector<std::filesystem::path>& files, std::ostream
 
 
 void write_checkpoint_file(std::vector<std::filesystem::path> files) {
-    std::ofstream checkpoint_file(aux_include_path / "checkpoint.txt");
+    std::ofstream checkpoint_file(output_path / "checkpoint.txt");
     checkpoint_file << "Nr Files:"<< files.size() << "\n";
     for (const auto& file : files)
     {
@@ -89,25 +89,38 @@ void write_checkpoint_file(std::vector<std::filesystem::path> files) {
 
 int main(int argc, char** argv)
 {
+    // Parse command line arguments --output and --basis
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--output" && i + 1 < argc) {
+            output_path = std::filesystem::path(argv[++i]);
+        }
+        else if (arg == "--basis" && i + 1 < argc) {
+            basis_path = std::filesystem::path(argv[++i]);
+        }
+    }
+
     //--------------------Extract Directory form input----------------
-    std::ofstream log_file("test.log");
-    log_file << "Starting BasisSetConverter..." << std::endl;
+    std::cout << "Starting BasisSetConverter..." << std::endl;
+    std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
+    output_path.make_preferred();
     basis_path.make_preferred();
-    log_file << "Basis path: " << basis_path << std::endl;
+    std::cout << "Output path: " << output_path << std::endl;
+    std::cout << "Basis path: " << basis_path << std::endl;
 
     //--------------------Find all basis set files----------------
     const std::vector<std::filesystem::path> files = get_all_basis_set_paths();
-    log_file << "Number of files found: " << files.size() << std::endl;
+    std::cout << "Number of files found: " << files.size() << std::endl;
 
 
-    if (!needs_rewrite(files, log_file)) {
-        log_file << "No need to rewrite auxiliary_basis.cpp, exiting..." << std::endl;
+    if (!needs_rewrite(files, std::cout)) {
+        std::cout << "No need to rewrite auxiliary_basis.cpp, exiting..." << std::endl;
         return 0;
     }
 
     //Check if the include directory exists
-    if (!std::filesystem::exists(aux_include_path)) {
-        std::filesystem::create_directory(aux_include_path);
+    if (!std::filesystem::exists(output_path)) {
+        std::filesystem::create_directory(output_path);
     }
 
     write_checkpoint_file(files);
@@ -124,7 +137,7 @@ int main(int argc, char** argv)
 
 
     //Write the basis sets to a file
-    std::ofstream aux_file(src_path / "auxiliary_basis.cpp");
+    std::ofstream aux_file(output_path / "auxiliary_basis.cpp");
     aux_file << "#include \"JKFit.h\" \n";
     std::vector<std::string> basis_names_internal;
     aux_file << "namespace {\n";
@@ -153,5 +166,4 @@ int main(int argc, char** argv)
     aux_file << "constexpr std::size_t aux_basis_set_count = std::size(aux_basis_sets);\n";
 
     aux_file.close();
-    log_file.close();
 }
