@@ -5,16 +5,16 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
-add_executable(BasisSetConverter ${SRC_FILES})
+add_executable(BasisSetGenerator ${SRC_FILES})
 
-target_include_directories(BasisSetConverter PUBLIC
+target_include_directories(BasisSetGenerator PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 if (WIN32)
-    set(BSC_EXE "${CMAKE_CURRENT_BINARY_DIR}/BasisSetConverter.exe")
+    set(BSC_EXE "${CMAKE_CURRENT_BINARY_DIR}/BasisSetGenerator.exe")
 else ()
-    set(BSC_EXE "${CMAKE_CURRENT_BINARY_DIR}/BasisSetConverter")
+    set(BSC_EXE "${CMAKE_CURRENT_BINARY_DIR}/BasisSetGenerator")
 endif ()
 
 # Add a release build configuration
