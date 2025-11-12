@@ -6,17 +6,18 @@ const std::array<std::vector<primitive>, 118> read_basis_set(std::filesystem::pa
     std::ifstream file(basis_path);          // data
     std::string line, delimiter = ",";             // data delimiter
 
-    std::getline(file, line); // first line read before beginning (H)
 
     for (int elem_idx = 0; elem_idx < 118; elem_idx++) {   // loop over all elements
-
+        std::getline(file, line); //Skip first line in each block, contains element name
         //std::cout << line << std::endl; // prints last line read before loop (visualization of elements) (shows last "omitted" line)
         int basis_idx = -1;
         while (true) {                   // loop over all primitives
             std::getline(file, line);   // read line
             if (line.empty()) break;    // delimiter between elements - empty lines
+            if (static_cast<int>(line[0]) == 13) break; // also break on carriage return character (ASCII 13) (Mac compatibility...)
 
             std::vector<double> res = split_string<double>(line, delimiter);    //splits line into components using delimiter
+
             if (basis_idx == static_cast<int>(res[4])) {
                 basis_set[elem_idx][basis_set[elem_idx].size() - 1].exp.emplace_back(res[2]);
                 basis_set[elem_idx][basis_set[elem_idx].size() - 1].coefficient.emplace_back(res[3]);
@@ -31,9 +32,6 @@ const std::array<std::vector<primitive>, 118> read_basis_set(std::filesystem::pa
         
             basis_idx = static_cast<int>(res[4]);
         }
-
-        std::getline(file, line);                               //after while-break, one line omitted (element line)
-
     }
     file.close();
     return basis_set;
