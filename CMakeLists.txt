@@ -1,26 +1,32 @@
+
 cmake_minimum_required(VERSION 3.10)
-project(BasisSetGenerator VERSION 1.0 LANGUAGES CXX)
+project(BasisSetConverter VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-file(GLOB SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
-add_executable(BasisSetGenerator ${SRC_FILES})
+# Simple single-executable project (no generation step)
+set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(SOURCES
+    ${SRC_DIR}/src/basis_set_helper.cpp
+    ${SRC_DIR}/src/BasisSetConverter.cpp
+)
 
-target_include_directories(BasisSetGenerator PUBLIC
+add_executable(BasisSetConverter ${SOURCES})
+
+target_include_directories(BasisSetConverter PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-if (WIN32)
-    set(BSC_EXE "${CMAKE_CURRENT_BINARY_DIR}/BasisSetGenerator.exe")
-else ()
-    set(BSC_EXE "${CMAKE_CURRENT_BINARY_DIR}/BasisSetGenerator")
-endif ()
+# Prefer target-level language requirement
+target_compile_features(BasisSetConverter PUBLIC cxx_std_17)
 
-# Add a release build configuration
-set(CMAKE_BUILD_TYPE Release)
+# Sensible warnings per-compiler
+if(MSVC)
+    target_compile_options(BasisSetConverter PRIVATE /W4)
+else()
+    target_compile_options(BasisSetConverter PRIVATE -Wall -Wextra -Wpedantic)
+endif()
 
-# Define the output directory for the executable
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR})
-
+message(STATUS "Configuring single-executable project 'BasisSetConverter'")
 

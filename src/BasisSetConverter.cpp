@@ -5,11 +5,8 @@
 #include <filesystem>
 #include "basis_set_helper.h"
 
-static std::filesystem::path src_path(".");
-static std::filesystem::path basis_path = src_path / "basis_sets";
-static std::filesystem::path output_path = src_path / "generated";
 
-const std::vector<std::filesystem::path> get_all_basis_set_paths() {
+const std::vector<std::filesystem::path> get_all_basis_set_paths(std::filesystem::path basis_path) {
     std::vector<std::filesystem::path> files;
     for (const auto& entry : std::filesystem::directory_iterator(basis_path))
     {
@@ -22,9 +19,9 @@ const std::vector<std::filesystem::path> get_all_basis_set_paths() {
     return files;
 };
 
-bool needs_rewrite(const std::vector<std::filesystem::path>& files, std::ostream& log_file) {
-    const std::filesystem::path aux_file = output_path / "auxiliary_basis.cpp";
-    const std::filesystem::path checkpoint_file_path = output_path / "checkpoint.txt";
+bool needs_rewrite(const std::filesystem::path& basis_path, const std::vector<std::filesystem::path>& files, std::ostream& log_file) {
+    const auto aux_file = basis_path / "auxiliary_basis.cpp";
+    const auto checkpoint_file_path = basis_path / "checkpoint.txt";
 
     // Check if the checkpoint file and auxiliary file exist
     if (!std::filesystem::exists(checkpoint_file_path) || !std::filesystem::exists(aux_file))
@@ -49,7 +46,8 @@ bool needs_rewrite(const std::vector<std::filesystem::path>& files, std::ostream
         return true;
     }
 
-    for (int i = 0; i < nr_files; ++i) {
+    std::filesystem::path basis_sets_loc = basis_path / "basis_set_helper" / "basis_sets";
+    for (int i = 0; i < nr_files; i++) {
         if (!std::getline(checkpoint_file, line)) {
             log_file << "Unexpected end of checkpoint.txt.\n";
             return true;
@@ -59,7 +57,7 @@ bool needs_rewrite(const std::vector<std::filesystem::path>& files, std::ostream
         const std::string file_name = line.substr(0, sep);
         int expected_size = std::stoi(line.substr(sep + 1));
 
-        const auto file_path = basis_path / file_name;
+        const auto file_path = basis_sets_loc / file_name;
 
         //Check if file_path is in files
         if (std::find(files.begin(), files.end(), file_path) == files.end()) {
@@ -77,9 +75,9 @@ bool needs_rewrite(const std::vector<std::filesystem::path>& files, std::ostream
 }
 
 
-void write_checkpoint_file(std::vector<std::filesystem::path> files) {
-    std::ofstream checkpoint_file(output_path / "checkpoint.txt");
-    checkpoint_file << "Nr Files:"<< files.size() << "\n";
+void write_checkpoint_file(std::filesystem::path basis_path, std::vector<std::filesystem::path> files) {
+    std::ofstream checkpoint_file(basis_path / "checkpoint.txt");
+    checkpoint_file << "Nr Files:" << files.size() << "\n";
     for (const auto& file : files)
     {
         checkpoint_file << file.filename().generic_string() << ":" << std::filesystem::file_size(file) << "\n";
@@ -87,43 +85,39 @@ void write_checkpoint_file(std::vector<std::filesystem::path> files) {
     checkpoint_file.close();
 }
 
+
+
 int main(int argc, char** argv)
 {
-    // Parse command line arguments --output and --basis
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if (arg == "--output" && i + 1 < argc) {
-            output_path = std::filesystem::path(argv[++i]);
-        }
-        else if (arg == "--basis" && i + 1 < argc) {
-            basis_path = std::filesystem::path(argv[++i]);
-        }
+    //--------------------Extract Directory form input----------------
+    std::ofstream log_file("test.log");
+    log_file << "Starting BasisSetConverter..." << std::endl;
+    std::filesystem::path basis_path(argv[1]);
+    basis_path = basis_path.parent_path().parent_path();
+    basis_path /= std::filesystem::path("Src/basis_set_helper/basis_sets/");
+    basis_path.make_preferred();
+    std::filesystem::path src_path;
+    if (argc >= 3)
+    {
+        src_path = std::filesystem::path(argv[2]);
+    }
+    else {
+        src_path = basis_path.parent_path().parent_path().parent_path();
     }
 
-    //--------------------Extract Directory form input----------------
-    std::cout << "Starting BasisSetConverter..." << std::endl;
-    std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
-    output_path.make_preferred();
-    basis_path.make_preferred();
-    std::cout << "Output path: " << output_path << std::endl;
-    std::cout << "Basis path: " << basis_path << std::endl;
+    log_file << "Basis path: " << basis_path << std::endl;
 
     //--------------------Find all basis set files----------------
-    const std::vector<std::filesystem::path> files = get_all_basis_set_paths();
-    std::cout << "Number of files found: " << files.size() << std::endl;
+    const std::vector<std::filesystem::path> files = get_all_basis_set_paths(basis_path);
+    log_file << "Number of files found: " << files.size() << std::endl;
 
 
-    if (!needs_rewrite(files, std::cout)) {
-        std::cout << "No need to rewrite auxiliary_basis.cpp, exiting..." << std::endl;
+    if (!needs_rewrite(src_path, files, log_file)) {
+        log_file << "No need to rewrite auxiliary_basis.cpp, exiting..." << std::endl;
         return 0;
     }
 
-    //Check if the include directory exists
-    if (!std::filesystem::exists(output_path)) {
-        std::filesystem::create_directory(output_path);
-    }
-
-    write_checkpoint_file(files);
+    write_checkpoint_file(src_path, files);
 
     std::unordered_map<std::string, std::array<std::vector<primitive>, 118>> basis_sets;
     //Read all files and convert them to the new format
@@ -137,15 +131,15 @@ int main(int argc, char** argv)
 
 
     //Write the basis sets to a file
-    std::ofstream aux_file(output_path / "auxiliary_basis.cpp");
-    aux_file << "#include \"JKFit.h\" \n";
+    std::ofstream aux_file(src_path / "basis_data.cpp");
+    aux_file << "#include \"basis_set.h\" \n";
     std::vector<std::string> basis_names_internal;
     aux_file << "namespace {\n";
 
     aux_file << "constexpr std::array<int, 118> compute_prefix_sum(const std::array<int, 118>& counts) {\n";
     aux_file << "    std::array<int, 118> offsets{};\n";
     aux_file << "    int sum = 0;\n";
-    aux_file << "    for (int i = 0; i < 118; ++i) {\n";
+    aux_file << "    for (int i = 0; i < 118; i++) {\n";
     aux_file << "        offsets[i] = (counts[i] == 0) ? -1 : sum;\n";
     aux_file << "        sum += counts[i];\n";
     aux_file << "    }\n";
@@ -158,12 +152,13 @@ int main(int argc, char** argv)
     }
 
     aux_file << "}\n";
-    aux_file << "constexpr BasisSetMetadata aux_basis_sets[] = {\n";
+    aux_file << "constexpr BasisSetMetadata basis_sets[] = {\n";
     for (const std::string& name : basis_names_internal) {
         aux_file << "\t" << name << "_metadata,\n";
     }
     aux_file << "};\n";
-    aux_file << "constexpr std::size_t aux_basis_set_count = std::size(aux_basis_sets);\n";
+    aux_file << "constexpr std::size_t basis_set_count = std::size(basis_sets);\n";
 
     aux_file.close();
+    log_file.close();
 }

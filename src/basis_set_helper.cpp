@@ -6,18 +6,17 @@ const std::array<std::vector<primitive>, 118> read_basis_set(std::filesystem::pa
     std::ifstream file(basis_path);          // data
     std::string line, delimiter = ",";             // data delimiter
 
+    std::getline(file, line); // first line read before beginning (H)
 
     for (int elem_idx = 0; elem_idx < 118; elem_idx++) {   // loop over all elements
-        std::getline(file, line); //Skip first line in each block, contains element name
+
         //std::cout << line << std::endl; // prints last line read before loop (visualization of elements) (shows last "omitted" line)
         int basis_idx = -1;
         while (true) {                   // loop over all primitives
             std::getline(file, line);   // read line
             if (line.empty()) break;    // delimiter between elements - empty lines
-            if (static_cast<int>(line[0]) == 13) break; // also break on carriage return character (ASCII 13) (Mac compatibility...)
 
             std::vector<double> res = split_string<double>(line, delimiter);    //splits line into components using delimiter
-
             if (basis_idx == static_cast<int>(res[4])) {
                 basis_set[elem_idx][basis_set[elem_idx].size() - 1].exp.emplace_back(res[2]);
                 basis_set[elem_idx][basis_set[elem_idx].size() - 1].coefficient.emplace_back(res[3]);
@@ -32,11 +31,62 @@ const std::array<std::vector<primitive>, 118> read_basis_set(std::filesystem::pa
         
             basis_idx = static_cast<int>(res[4]);
         }
+
+        std::getline(file, line);                               //after while-break, one line omitted (element line)
+
     }
     file.close();
+
+    //Sort the basis set according to the convention:
+    // 1) Primitives inside each shell sorted by exponent descending
+    // 2) Shells sorted by angular momentum (l = type) ascending, then by first exponent descending within each l
+    for (auto& elem_basis : basis_set) {
+        if (elem_basis.empty()) continue;
+
+        // 1) Sort primitives inside each shell by exponent descending,
+        //    keeping coefficients aligned.
+        for (auto& shell : elem_basis) {
+            if (shell.exp.size() <= 1) continue;
+
+            if (!std::is_sorted(shell.exp.begin(), shell.exp.end(), std::greater<double>{})) {
+                std::vector<std::pair<double, double>> ec;
+                ec.reserve(shell.exp.size());
+
+                for (std::size_t k = 0; k < shell.exp.size(); ++k) {
+                    ec.emplace_back(shell.exp[k], shell.coefficient[k]);
+                }
+
+                std::sort(ec.begin(), ec.end(),
+                    [](const auto& a, const auto& b) {
+                        return a.first > b.first;
+                    });
+
+                for (std::size_t k = 0; k < ec.size(); ++k) {
+                    shell.exp[k] = ec[k].first;
+                    shell.coefficient[k] = ec[k].second;
+                }
+            }
+        }
+
+        // 2) Stable sort shells:
+        //    first by angular momentum l (= type),
+        //    then by first exponent descending within each l.
+        std::stable_sort(elem_basis.begin(), elem_basis.end(),
+            [](const primitive& a, const primitive& b) {
+                if (a.type != b.type) {
+                    return a.type < b.type;
+                }
+
+                // Optional safety for malformed shells
+                const double a0 = a.exp.empty() ? -std::numeric_limits<double>::infinity() : a.exp.front();
+                const double b0 = b.exp.empty() ? -std::numeric_limits<double>::infinity() : b.exp.front();
+
+                return a0 > b0;
+            });
+    }
+
     return basis_set;
 }
-
 
 //constexpr Primitive sto3g_primitives[] = {
 //    // H
