@@ -1,5 +1,5 @@
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15)
 project(BasisSetConverter VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -21,12 +21,10 @@ target_include_directories(BasisSetConverter PUBLIC
 # Prefer target-level language requirement
 target_compile_features(BasisSetConverter PUBLIC cxx_std_17)
 
-# Sensible warnings per-compiler
-if(MSVC)
-    target_compile_options(BasisSetConverter PRIVATE /W4)
-else()
-    target_compile_options(BasisSetConverter PRIVATE -Wall -Wextra -Wpedantic)
-endif()
-
 message(STATUS "Configuring single-executable project 'BasisSetConverter'")
+
+# Install rules
+install(TARGETS BasisSetConverter
+    RUNTIME DESTINATION .
+)
 
