@@ -44,9 +44,9 @@ jobs:
             cpp_compiler: clang++
         exclude:
           - os: windows-latest
-            c_compiler: gcc
-          - os: windows-latest
             c_compiler: clang
+          - os: ubuntu-latest
+            c_compiler: cl
           - os: macos-26
             c_compiler: cl
           - os: macos-26-intel
@@ -78,4 +78,4 @@ jobs:
 
     - name: Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: ./BasisSetConverter basis_sets .
+      run: ./BasisSetConverter ../basis_sets .
