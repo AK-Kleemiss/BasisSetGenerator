@@ -86,24 +86,23 @@ void write_checkpoint_file(std::filesystem::path basis_path, std::vector<std::fi
 }
 
 
-
+//Argument 1: Path to the directory containing the basis set files
+//Argument 2: Path to the src directory where the basis_data.cpp file should be written
 int main(int argc, char** argv)
 {
     //--------------------Extract Directory form input----------------
-    std::ofstream log_file("test.log");
+    std::ofstream log_file("BasisConverter.log");
     log_file << "Starting BasisSetConverter..." << std::endl;
+    //Check if the correct number of arguments is provided
+    if (argc != 3) {
+        log_file << "Usage: BasisSetConverter <basis_set_directory> <src_directory>" << std::endl;
+        return 1;
+    }
     std::filesystem::path basis_path(argv[1]);
-    basis_path = basis_path.parent_path().parent_path();
-    basis_path /= std::filesystem::path("Src/basis_set_helper/basis_sets/");
     basis_path.make_preferred();
     std::filesystem::path src_path;
-    if (argc >= 3)
-    {
-        src_path = std::filesystem::path(argv[2]);
-    }
-    else {
-        src_path = basis_path.parent_path().parent_path().parent_path();
-    }
+    src_path = std::filesystem::path(argv[2]);
+
 
     log_file << "Basis path: " << basis_path << std::endl;
 
@@ -113,7 +112,7 @@ int main(int argc, char** argv)
 
 
     if (!needs_rewrite(src_path, files, log_file)) {
-        log_file << "No need to rewrite auxiliary_basis.cpp, exiting..." << std::endl;
+        log_file << "No need to rewrite basis_data.cpp, exiting..." << std::endl;
         return 0;
     }
 
