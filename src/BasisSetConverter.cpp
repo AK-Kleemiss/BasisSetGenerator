@@ -162,9 +162,7 @@ int main(int argc, char** argv)
     log_file.close();
 }
 catch (const std::exception& e) {
-    std::ofstream log_file("BasisConverter.log", std::ios_base::app);
-    log_file << "An error occurred: " << e.what() << std::endl;
-    log_file.close();
+    std::cerr << "An error occurred: " << e.what() << std::endl;
     return 1;
 }
 }

@@ -94,7 +94,7 @@ jobs:
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       #Run basis set Generator and check if the basis_data.cpp file is generated
       run: |
-        .\BasisSetConverter.exe ..\basis_sets .
+        .\Release\BasisSetConverter.exe ..\basis_sets .
         if (Test-Path "basis_data.cpp") {
           Write-Host "basis_data.cpp generated successfully."
         } else {
