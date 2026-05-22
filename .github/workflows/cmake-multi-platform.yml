@@ -77,6 +77,7 @@ jobs:
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
     - name: Test
+      if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-26' || matrix.os == 'macos-26-intel'
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       #Run basis set Generator and check if the basis_data.cpp file is generated
       run: |
@@ -87,3 +88,16 @@ jobs:
           echo "Error: basis_data.cpp was not generated."
           exit 1
         fi
+    
+    - name: Test
+      if: matrix.os == 'windows-latest'
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      #Run basis set Generator and check if the basis_data.cpp file is generated
+      run: |
+        .\BasisSetConverter.exe ..\basis_sets .
+        if (Test-Path "basis_data.cpp") {
+          Write-Host "basis_data.cpp generated successfully."
+        } else {
+          Write-Host "Error: basis_data.cpp was not generated."
+          exit 1
+        }

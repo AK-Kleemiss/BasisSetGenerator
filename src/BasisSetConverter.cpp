@@ -19,9 +19,9 @@ const std::vector<std::filesystem::path> get_all_basis_set_paths(std::filesystem
     return files;
 };
 
-bool needs_rewrite(const std::filesystem::path& basis_path, const std::vector<std::filesystem::path>& files, std::ostream& log_file) {
-    const auto aux_file = basis_path / "auxiliary_basis.cpp";
-    const auto checkpoint_file_path = basis_path / "checkpoint.txt";
+bool needs_rewrite(const std::filesystem::path& src_path, const std::filesystem::path& basis_path, const std::vector<std::filesystem::path>& files, std::ostream& log_file) {
+    const auto aux_file = src_path / "basis_data.cpp";
+    const auto checkpoint_file_path = src_path / "checkpoint.txt";
 
     // Check if the checkpoint file and auxiliary file exist
     if (!std::filesystem::exists(checkpoint_file_path) || !std::filesystem::exists(aux_file))
@@ -46,7 +46,6 @@ bool needs_rewrite(const std::filesystem::path& basis_path, const std::vector<st
         return true;
     }
 
-    std::filesystem::path basis_sets_loc = basis_path / "basis_set_helper" / "basis_sets";
     for (int i = 0; i < nr_files; i++) {
         if (!std::getline(checkpoint_file, line)) {
             log_file << "Unexpected end of checkpoint.txt.\n";
@@ -57,7 +56,7 @@ bool needs_rewrite(const std::filesystem::path& basis_path, const std::vector<st
         const std::string file_name = line.substr(0, sep);
         int expected_size = std::stoi(line.substr(sep + 1));
 
-        const auto file_path = basis_sets_loc / file_name;
+        const auto file_path = basis_path / file_name;
 
         //Check if file_path is in files
         if (std::find(files.begin(), files.end(), file_path) == files.end()) {
@@ -90,6 +89,7 @@ void write_checkpoint_file(std::filesystem::path basis_path, std::vector<std::fi
 //Argument 2: Path to the src directory where the basis_data.cpp file should be written
 int main(int argc, char** argv)
 {
+    try{
     //--------------------Extract Directory form input----------------
     std::ofstream log_file("BasisConverter.log");
     log_file << "Starting BasisSetConverter..." << std::endl;
@@ -111,7 +111,7 @@ int main(int argc, char** argv)
     log_file << "Number of files found: " << files.size() << std::endl;
 
 
-    if (!needs_rewrite(src_path, files, log_file)) {
+    if (!needs_rewrite(src_path, basis_path, files, log_file)) {
         log_file << "No need to rewrite basis_data.cpp, exiting..." << std::endl;
         return 0;
     }
@@ -160,4 +160,10 @@ int main(int argc, char** argv)
 
     aux_file.close();
     log_file.close();
+}
+catch (const std::exception& e) {
+    std::ofstream log_file("BasisConverter.log", std::ios_base::app);
+    log_file << "An error occurred: " << e.what() << std::endl;
+    log_file.close();
+    return 1;
 }
