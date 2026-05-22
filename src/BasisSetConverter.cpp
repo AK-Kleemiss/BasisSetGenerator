@@ -167,3 +167,4 @@ catch (const std::exception& e) {
     log_file.close();
     return 1;
 }
+}
