@@ -70,6 +70,7 @@ jobs:
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -S ${{ github.workspace }}
 
     - name: Build
@@ -101,3 +102,19 @@ jobs:
           Write-Host "Error: basis_data.cpp was not generated."
           exit 1
         }
+
+    - name: Show converter log
+      if: failure()
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      run: |
+        cat BasisConverter.log || true
+        ls -lah
+    
+    - name: Debug with lldb
+      if: failure() && startsWith(matrix.os, 'macos')
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      run: |
+        lldb --batch \
+          -o "run ../basis_sets ." \
+          -o "bt" \
+          -- ./BasisSetConverter
