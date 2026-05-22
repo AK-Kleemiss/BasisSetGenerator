@@ -78,4 +78,12 @@ jobs:
 
     - name: Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: ./BasisSetConverter ../basis_sets .
+      #Run basis set Generator and check if the basis_data.cpp file is generated
+      run: |
+        ./BasisSetConverter ../basis_sets .
+        if [ -f "basis_data.cpp" ]; then
+          echo "basis_data.cpp generated successfully."
+        else
+          echo "Error: basis_data.cpp was not generated."
+          exit 1
+        fi
