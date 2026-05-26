@@ -14,7 +14,9 @@ const std::array<std::vector<primitive>, 118> read_basis_set(std::filesystem::pa
         int basis_idx = -1;
         while (true) {                   // loop over all primitives
             std::getline(file, line);   // read line
-            if (line.empty()) break;    // delimiter between elements - empty lines
+
+            //If the line does not contain a comma, break (element line)
+            if (line.find(delimiter) == std::string::npos) {break;} //This is a silly hack... line.empty() returns true on some systems (Mac...) if the only character is 0D (Carriage Return > Thanks Windows...)
 
             std::vector<double> res = split_string<double>(line, delimiter);    //splits line into components using delimiter
 
