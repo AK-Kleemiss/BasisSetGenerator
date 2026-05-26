@@ -71,6 +71,8 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        -DCMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer -g"
+        -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address"
         -S ${{ github.workspace }}
 
     - name: Build
