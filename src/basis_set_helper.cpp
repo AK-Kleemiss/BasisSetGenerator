@@ -20,21 +20,6 @@ const std::array<std::vector<primitive>, 118> read_basis_set(std::filesystem::pa
 
             std::vector<double> res = split_string<double>(line, delimiter);    //splits line into components using delimiter
 
-            if (res.size() < 5) {
-                throw std::runtime_error(
-                    "Malformed CSV line in " + basis_path.string() +
-                    ": expected 5 columns, got " + std::to_string(res.size()) +
-                    ". Line: " + line
-                );
-            }
-
-            if (basis_set[elem_idx].empty()) {
-                throw std::runtime_error(
-                    "Continuation line before first shell in " + basis_path.string() +
-                    ". Line: " + line
-                );
-            }
-
             if (basis_idx == static_cast<int>(res[4])) {
                 basis_set[elem_idx][basis_set[elem_idx].size() - 1].exp.emplace_back(res[2]);
                 basis_set[elem_idx][basis_set[elem_idx].size() - 1].coefficient.emplace_back(res[3]);
