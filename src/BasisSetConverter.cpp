@@ -121,13 +121,11 @@ int main(int argc, char** argv)
     //Read all files and convert them to the new format
     for (const auto& file : files)
     {
-        std::cerr << "Reading: " << file << std::endl;
         log_file << "Reading: " << file << std::endl;
         log_file.flush();
         std::string basis_name = file.stem().string();
         std::transform(basis_name.begin(), basis_name.end(), basis_name.begin(), ::tolower);
         std::array<std::vector<primitive>, 118> basis_set = read_basis_set(file);
-        std::cerr << "Finished: " << file << std::endl;
         basis_sets[basis_name] = basis_set;
     }
 
