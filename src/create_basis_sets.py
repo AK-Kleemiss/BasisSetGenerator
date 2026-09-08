@@ -27,11 +27,13 @@ def get_Basis_NoSpherA2(basis):
             # into their s- and p-type components individually -- taking only
             # coefficients[0] here would silently drop the p-type functions
             # entirely (this was a real, shipped bug: see UNIT_TESTS_STATUS.md).
-            for ang_mom, coef_row in zip(shell["angular_momentum"], shell["coefficients"]):
-                if isinstance(shells_dict.get(ang_mom), type(None)):
-                    shells_dict[ang_mom] = {"exponents": [], "coefficients": []}
-                shells_dict[ang_mom]["exponents"].append(shell["exponents"])
-                shells_dict[ang_mom]["coefficients"].append(coef_row)
+            for coefficient_idx in range(len(shell["coefficients"])):
+                coef_row = shell["coefficients"][coefficient_idx]
+                for ang_mom in shell["angular_momentum"]:
+                    if isinstance(shells_dict.get(ang_mom), type(None)):
+                        shells_dict[ang_mom] = {"exponents": [], "coefficients": []}
+                    shells_dict[ang_mom]["exponents"].append(shell["exponents"])
+                    shells_dict[ang_mom]["coefficients"].append(coef_row)
 
         func = 0
         for ang_mom in sorted(shells_dict.keys()):
@@ -50,9 +52,6 @@ basis_sets_dir = os.path.join(os.path.dirname(__file__), "..", "basis_sets")
 # name -> exact on-disk filename (preserved so the C++ BasisSetConverter picks
 # up the same basis under the same internal identifier as before).
 targets = {
-    "def2-svp": "def2-SVP-basis.csv",
-    "sto-3g": "STO-3G-basis.csv",
-    "3-21g": "3-21G-basis.csv",
 }
 
 for name, filename in targets.items():
