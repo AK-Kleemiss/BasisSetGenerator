@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include <map>
 #include "basis_set_helper.h"
 
 
@@ -117,7 +118,11 @@ int main(int argc, char** argv)
 
     write_checkpoint_file(src_path, files);
 
-    std::unordered_map<std::string, std::array<std::vector<primitive>, 118>> basis_sets;
+    // std::map, not unordered_map: the iteration order below fixes the order of the
+    // generated basis_sets[] array, and an unordered one differs between standard
+    // libraries, which made name lookups in NoSpherA2 resolve differently on Linux
+    // and Windows.
+    std::map<std::string, std::array<std::vector<primitive>, 118>> basis_sets;
     //Read all files and convert them to the new format
     for (const auto& file : files)
     {

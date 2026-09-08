@@ -1,5 +1,4 @@
-import bse
-import numpy as np
+import basis_set_exchange as bse
 
 numberToSymbol = {
     1 : "H", 2 : "He",
@@ -22,25 +21,42 @@ def get_Basis_NoSpherA2(basis):
             continue
 
         shells_dict = {}
-        for i, shell in enumerate(basis["elements"][str(element)]["electron_shells"]):
-            if isinstance(shells_dict.get(shell["angular_momentum"][0]), type(None)):
-                shells_dict[shell["angular_momentum"][0]] = {"exponents": [], "coefficients" : []}
-            
-            shells_dict[shell["angular_momentum"][0]]["exponents"].append(shell["exponents"])
-            shells_dict[shell["angular_momentum"][0]]["coefficients"].append(shell["coefficients"][0])
-        
+        for shell in basis["elements"][str(element)]["electron_shells"]:
+            # Combined "L"/"SP" shells (angular_momentum = [0, 1], sharing one set
+            # of exponents with two separate coefficient rows) must be unrolled
+            # into their s- and p-type components individually -- taking only
+            # coefficients[0] here would silently drop the p-type functions
+            # entirely (this was a real, shipped bug: see UNIT_TESTS_STATUS.md).
+            for coefficient_idx in range(len(shell["coefficients"])):
+                coef_row = shell["coefficients"][coefficient_idx]
+                for ang_mom in shell["angular_momentum"]:
+                    if isinstance(shells_dict.get(ang_mom), type(None)):
+                        shells_dict[ang_mom] = {"exponents": [], "coefficients": []}
+                    shells_dict[ang_mom]["exponents"].append(shell["exponents"])
+                    shells_dict[ang_mom]["coefficients"].append(coef_row)
+
         func = 0
-        for ang_mom in shells_dict:
+        for ang_mom in sorted(shells_dict.keys()):
             for exp, coef in zip(shells_dict[ang_mom]["exponents"], shells_dict[ang_mom]["coefficients"]):
                 for e, c in zip(exp, coef):
                     out += f"0, {ang_mom}, {float(e):<15.11f}, {float(c):.11f}, {func}\n"
                 func += 1
-                
+
         out += "\n"
     return out
 
-name = "def2-svp"
-basis = bse.get_basis(name)
-out = get_Basis_NoSpherA2(basis)
-with open(f"{name}.csv", "w") as f:
-    f.write(out)
+import os
+
+basis_sets_dir = os.path.join(os.path.dirname(__file__), "..", "basis_sets")
+
+# name -> exact on-disk filename (preserved so the C++ BasisSetConverter picks
+# up the same basis under the same internal identifier as before).
+targets = {
+}
+
+for name, filename in targets.items():
+    basis = bse.get_basis(name)
+    out = get_Basis_NoSpherA2(basis)
+    with open(os.path.join(basis_sets_dir, filename), "w") as f:
+        f.write(out)
+    print(f"Wrote {filename} ({name})")
