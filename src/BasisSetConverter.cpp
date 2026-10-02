@@ -20,6 +20,15 @@ const std::vector<std::filesystem::path> get_all_basis_set_paths(std::filesystem
     return files;
 };
 
+// FNV-1a over the file's bytes, CR skipped so a CRLF checkout hashes like an LF one
+unsigned long long content_hash(const std::filesystem::path& file) {
+    std::ifstream in(file, std::ios::binary);
+    unsigned long long h = 14695981039346656037ULL;
+    for (char c; in.get(c);)
+        if (c != '\r') h = (h ^ static_cast<unsigned char>(c)) * 1099511628211ULL;
+    return h;
+}
+
 bool needs_rewrite(const std::filesystem::path& src_path, const std::filesystem::path& basis_path, const std::vector<std::filesystem::path>& files, std::ostream& log_file) {
     const auto aux_file = src_path / "basis_data.cpp";
     const auto checkpoint_file_path = src_path / "checkpoint.txt";
@@ -55,7 +64,7 @@ bool needs_rewrite(const std::filesystem::path& src_path, const std::filesystem:
 
         const auto sep = line.find(':');
         const std::string file_name = line.substr(0, sep);
-        int expected_size = std::stoi(line.substr(sep + 1));
+        const unsigned long long expected_hash = std::stoull(line.substr(sep + 1));
 
         const auto file_path = basis_path / file_name;
 
@@ -65,8 +74,8 @@ bool needs_rewrite(const std::filesystem::path& src_path, const std::filesystem:
             return true;
         }
 
-        if (expected_size != static_cast<int>(std::filesystem::file_size(file_path))) {
-            log_file << "File size mismatch: " << file_name << "            REWRITING!" << "\n";
+        if (expected_hash != content_hash(file_path)) {
+            log_file << "File content changed: " << file_name << "            REWRITING!" << "\n";
             return true;
         }
     }
@@ -80,7 +89,7 @@ void write_checkpoint_file(std::filesystem::path basis_path, std::vector<std::fi
     checkpoint_file << "Nr Files:" << files.size() << "\n";
     for (const auto& file : files)
     {
-        checkpoint_file << file.filename().generic_string() << ":" << std::filesystem::file_size(file) << "\n";
+        checkpoint_file << file.filename().generic_string() << ":" << content_hash(file) << "\n";
     }
     checkpoint_file.close();
 }
