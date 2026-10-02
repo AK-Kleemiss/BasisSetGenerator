@@ -142,13 +142,13 @@ int main(int argc, char** argv)
     aux_file << "namespace {\n";
 
     aux_file << "constexpr std::array<int, 118> compute_prefix_sum(const std::array<int, 118>& counts) {\n";
-    aux_file << "    std::array<int, 118> offsets{};\n";
-    aux_file << "    int sum = 0;\n";
-    aux_file << "    for (int i = 0; i < 118; i++) {\n";
-    aux_file << "        offsets[i] = (counts[i] == 0) ? -1 : sum;\n";
-    aux_file << "        sum += counts[i];\n";
-    aux_file << "    }\n";
-    aux_file << "    return offsets;\n";
+    aux_file << "\tstd::array<int, 118> offsets{};\n";
+    aux_file << "\tint sum = 0;\n";
+    aux_file << "\tfor (int i = 0; i < 118; i++) {\n";
+    aux_file << "\t\toffsets[i] = (counts[i] == 0) ? -1 : sum;\n";
+    aux_file << "\t\tsum += counts[i];\n";
+    aux_file << "\t}\n";
+    aux_file << "\treturn offsets;\n";
     aux_file << "}\n";
 
     for (const auto& [basis_name, basis_set] : basis_sets)

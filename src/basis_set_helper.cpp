@@ -137,7 +137,7 @@ std::string write_basis_set(std::ofstream& file, const std::string basis_name, s
         int func = 0;
         for (const auto& p : basis_set[i]) {
             for (int j = 0; j < p.exp.size(); j++) {
-                file << "    {" << p.center << ", " << p.type << ", " << std::fixed << std::setprecision(16) << p.exp[j] << ", " << p.coefficient[j] << ", " << func << "},\n";
+                file << "\t{" << p.center << ", " << p.type << ", " << std::fixed << std::setprecision(16) << p.exp[j] << ", " << p.coefficient[j] << ", " << func << "},\n";
             }
             func++;
         }
@@ -154,7 +154,7 @@ std::string write_basis_set(std::ofstream& file, const std::string basis_name, s
         for (int j = 0; j < basis_set[i].size(); j++) {
             s += basis_set[i][j].exp.size();
         }
-        file << "\n    " << s << ",";
+        file << "\n\t" << s << ",";
         running_idx += s;
     }
     file << "}};\n\n";
@@ -162,11 +162,11 @@ std::string write_basis_set(std::ofstream& file, const std::string basis_name, s
     file << "constexpr std::array<int, 118> " << basis_name_copy << "_offsets = " << "compute_prefix_sum( " <<  basis_name_copy << "_counts );\n\n";
 
     file << "constexpr BasisSetMetadata " << basis_name_copy << "_metadata = {\n";
-    file << "    \"" << basis_name << "\",\n";
-    file << "    " << basis_name_copy << "_primitives,\n";
-    file << "    std::size(" << basis_name_copy << "_primitives),\n";
-    file << "    " << basis_name_copy << "_counts,\n";
-    file << "    " << basis_name_copy << "_offsets\n";
+    file << "\t\"" << basis_name << "\",\n";
+    file << "\t" << basis_name_copy << "_primitives,\n";
+    file << "\tstd::size(" << basis_name_copy << "_primitives),\n";
+    file << "\t" << basis_name_copy << "_counts,\n";
+    file << "\t" << basis_name_copy << "_offsets\n";
     file << "};\n\n";
     return basis_name_copy;
 }
